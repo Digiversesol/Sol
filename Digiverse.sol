@@ -915,14 +915,10 @@ contract DIGIVERSE is Context, IERC20, Ownable,ReentrancyGuard {
     //Swap Tokens for BNB or to add liquidity either automatically or manual, by default this is set to manual.
     //Corrected newBalance bug, it sending bnb to wallet and any remaining is on contract and can be recoverred.
     function swapAndLiquify() private lockTheSwap {
-        bool oldAntisnipeDisable = antisnipeDisable;
-        antisnipeDisable = true;
-
         uint256 totalTokens = balanceOf(address(this));
         swapTokensForEth(totalTokens);
         uint ethBalance = address(this).balance;
 
-        antisnipeDisable = oldAntisnipeDisable;
         transferToAddressETH(marketingWallet, ethBalance);
 
         marketingTokensCollected = 0;
