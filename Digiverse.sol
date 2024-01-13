@@ -1,6 +1,3 @@
-/**
- *Submitted for verification at BscScan.com on 2023-12-05
-*/
 
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
@@ -114,7 +111,86 @@ library Address {
     }
 
 }
+//Certik Recommended the inclusion of the reentrancy guard.
+/**
+ * @dev Contract module that helps prevent reentrant calls to a function.
+ *
+ * Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier
+ * available, which can be applied to functions to make sure there are no nested
+ * (reentrant) calls to them.
+ *
+ * Note that because there is a single `nonReentrant` guard, functions marked as
+ * `nonReentrant` may not call one another. This can be worked around by making
+ * those functions `private`, and then adding `external` `nonReentrant` entry
+ * points to them.
+ *
+ * TIP: If you would like to learn more about reentrancy and alternative ways
+ * to protect against it, check out our blog post
+ * https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul].
+ */
+abstract contract ReentrancyGuard {
+    // Booleans are more expensive than uint256 or any type that takes up a full
+    // word because each write operation emits an extra SLOAD to first read the
+    // slot's contents, replace the bits taken up by the boolean, and then write
+    // back. This is the compiler's defense against contract upgrades and
+    // pointer aliasing, and it cannot be disabled.
 
+    // The values being non-zero value makes deployment a bit more expensive,
+    // but in exchange the refund on every call to nonReentrant will be lower in
+    // amount. Since refunds are capped to a percentage of the total
+    // transaction's gas, it is best to keep them low in cases like this one, to
+    // increase the likelihood of the full refund coming into effect.
+    uint256 private constant NOT_ENTERED = 1;
+    uint256 private constant ENTERED = 2;
+
+    uint256 private _status;
+
+    /**
+     * @dev Unauthorized reentrant call.
+     */
+    error ReentrancyGuardReentrantCall();
+
+    constructor() {
+        _status = NOT_ENTERED;
+    }
+
+    /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     * Calling a `nonReentrant` function from another `nonReentrant`
+     * function is not supported. It is possible to prevent this from happening
+     * by making the `nonReentrant` function external, and making it call a
+     * `private` function that does the actual work.
+     */
+    modifier nonReentrant() {
+        _nonReentrantBefore();
+        _;
+        _nonReentrantAfter();
+    }
+
+    function _nonReentrantBefore() private {
+        // On the first call to nonReentrant, _status will be NOT_ENTERED
+        if (_status == ENTERED) {
+            revert ReentrancyGuardReentrantCall();
+        }
+
+        // Any calls to nonReentrant after this point will fail
+        _status = ENTERED;
+    }
+
+    function _nonReentrantAfter() private {
+        // By storing the original value once again, a refund is triggered (see
+        // https://eips.ethereum.org/EIPS/eip-2200)
+        _status = NOT_ENTERED;
+    }
+
+    /**
+     * @dev Returns true if the reentrancy guard is currently set to "entered", which indicates there is a
+     * `nonReentrant` function in the call stack.
+     */
+    function _reentrancyGuardEntered() internal view returns (bool) {
+        return _status == ENTERED;
+    }
+}
 /**
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an owner) that can be granted exclusive access to
@@ -536,7 +612,7 @@ interface IAntisnipe {
     ) external;
 }
 
-contract DIGIVERSE is Context, IERC20, Ownable {
+contract DIGIVERSE is Context, IERC20, Ownable,ReentrancyGuard {
     using Address for address;
 
     //Dead Wallet for SAFU Contract
@@ -548,6 +624,8 @@ contract DIGIVERSE is Context, IERC20, Ownable {
     mapping(address => bool) private _noFeeWallet;
 
     event TransferStatus(string,bool);
+    event UpdateAntiSnipe(address);
+    event UpdateAntiSnipeStatus(bool);
     event UpdateDevOpsWallet(address);
     event UpdateStakingWallet(address);
     event UpdateTokensToSwap(uint256);
@@ -568,26 +646,85 @@ contract DIGIVERSE is Context, IERC20, Ownable {
     event SwapTokensForETH(uint256 amountIn, address[] path);
     //Supply Definition.
     uint256 private _tTotal = 100_000_000 ether;
-
+    //Token Distribution as requested by certik.
+        // Seed
+        uint256 private seedAmount = 5000000 ether;
+        
+        // Private Sale
+        uint256 private privateSaleAmount = 1000000 ether;
+        
+        // Public
+        uint256 private publicSaleAmount = 2000000 ether;
+        
+        // Kols
+        uint256 private kolsAmount = 350000 ether;
+        
+        // Airdrop
+        uint256 private airdropAmount = 1000000 ether;
+        
+        // Stake
+        uint256 private stakeAmount = 3000000 ether;
+        
+        // Team
+        uint256 private teamAmount = 10000000 ether;
+        
+        // Development
+        uint256 private developmentAmount = 17000000 ether;
+        
+        // Marketing
+        uint256 private marketingAmount = 7000000 ether;
+        
+        // Ecosystem
+        uint256 private ecosystemAmount = 25650000 ether;
+        
+        // Advisors
+        uint256 private advisorsAmount = 8000000 ether;
+        
+        // Liquidity
+        uint256 private liquidityAmount = 20000000 ether;
     //Token Definition.
     string public constant name = "DIGIVERSE";
     string public constant symbol = "DIGI";
     uint8 public constant decimals = 18;
     //Definition of Wallets for Marketing or team.
+    //Definitions of wallets for token distribution for certik requirements.
     address payable public marketingWallet =
-        payable(0xee518a1196898cBCE97d7F046bCE21ac05B593f8);
+        payable(0xF2BAeE0650E5314Be7Edb9fde13C64593aBDb9B5);
+    address payable public seedWallet =
+        payable(0x7984B279B2A58f2b5f67E835258E00dF33ef3f02);
+    address payable public privateSaleWallet =
+        payable(0x3fe7E88d5333fEf773dDe4710001A64cD389a9a2);
+    address payable public publicSaleWallet =
+        payable(0xB647670FAbB9b81CD1e65985d82ab479a88069a0);
+    address payable public kolsWallet =
+        payable(0x648D23189C40Cd488D6155E1A70036271f7c09f8);
+    address payable public airdropWallet =
+        payable(0xde5eef2C6CE87dbBDf80D063AbCde4AECc71638e);
+    address payable public stakeWallet =
+        payable(0x9c9D3bf3D24AdF91Ab013A818AC0b3aF49851A31);
+    address payable public teamWallet =
+        payable(0x9C5ea6E6B82A1fFa0f2a83c76b9bC4fb55c9e1DC);
+    address payable public develomentWallet =
+        payable(0xE2d1da613742B85FCBC2Ef6866CF29cC8BAA76E0);
+    address payable public ecosystemWallet =
+        payable(0x48e3Edd8ED1817E168f48C8792578Cdb73d76562);
+    address payable public advisorsWallet =
+        payable(0x25B5CAAedB7d1D58974375d4f27f9541E41ba222);
+    address payable public liquidityWallet =
+        payable(0x9d7DA83F282b99A96B4C0d169237F02FaB7Eb914);
+
     //Taxes Definition.
     uint public buyFee = 2;
 
     uint256 public sellFee = 2;
 
     uint256 public marketingTokensCollected = 0;
-    uint256 public totalMarketingTokensCollected = 0;
 
-    uint256 public minimumTokensBeforeSwap = 100_000 ether;
+
+    uint256 public minimumTokensBeforeSwap = 500 ether;
 
     //Oracle Price Update, Manual Process.
-    uint256 public swapOutput = 0;
+    uint256 public swapOutput = 1;
 
     //Router and Pair Configuration.
     IUniswapV2Router02 public immutable uniswapV2Router;
@@ -607,34 +744,21 @@ contract DIGIVERSE is Context, IERC20, Ownable {
     }
 
     constructor() {
-        _tOwned[_msgSender()] = _tTotal;
-        address currentRouter;
-        //Adding Variables for all the routers for easier deployment for our customers.
-        if (block.chainid == 56 || block.chainid == 31337) {
-            currentRouter = 0x10ED43C718714eb63d5aA57B78B54704E256024E; // PCS Router
-            _noFeeWallet[0x407993575c91ce7643a4d4cCACc9A98c36eE1BBE] = true;//PinkSale Lock
-        } else if (block.chainid == 97) {
-            currentRouter = 0xD99D1c33F9fC3444f8101754aBC46c52416550D1; // PCS Testnet
-            _noFeeWallet[0x5E5b9bE5fd939c578ABE5800a90C566eeEbA44a5] = true;//PinkSale Lock
-        } else if (block.chainid == 43114) {
-            currentRouter = 0x60aE616a2155Ee3d9A68541Ba4544862310933d4; //Avax Mainnet
-        } else if (block.chainid == 137) {
-            currentRouter = 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff; //Polygon Ropsten
-        } else if (block.chainid == 6066) {
-            currentRouter = 0x4169Db906fcBFB8b12DbD20d98850Aee05B7D889; //Tres Leches Chain
-        } else if (block.chainid == 250) {
-            currentRouter = 0xF491e7B69E4244ad4002BC14e878a34207E38c29; //SpookySwap FTM
-        } else if (block.chainid == 42161) {
-            currentRouter = 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506; //Arbitrum Sushi
-            _noFeeWallet[0xeBb415084Ce323338CFD3174162964CC23753dFD] = true;//PinkSale Lock
-        } else if (block.chainid == 1 || block.chainid == 5) {
-            currentRouter = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D; //Mainnet
-            _noFeeWallet[0x71B5759d73262FBb223956913ecF4ecC51057641] = true;//PinkSale Lock
-        } else {
-            revert("You're not Blade");
-        }
-
-        //End of Router Variables.
+        //Token Distribution and Balance Update as request by Certik.
+        _tOwned[marketingWallet] = marketingAmount;
+        _tOwned[seedWallet] = seedAmount;
+        _tOwned[privateSaleWallet] = privateSaleAmount;
+        _tOwned[publicSaleWallet] = publicSaleAmount;
+        _tOwned[kolsWallet] = kolsAmount;
+        _tOwned[airdropWallet] = airdropAmount;
+        _tOwned[stakeWallet] = stakeAmount;
+        _tOwned[teamWallet] = teamAmount;
+        _tOwned[develomentWallet] = developmentAmount;
+        _tOwned[ecosystemWallet] = ecosystemAmount;
+        _tOwned[advisorsWallet] = advisorsAmount;
+        _tOwned[liquidityWallet] = liquidityAmount;
+        address currentRouter = 0xD99D1c33F9fC3444f8101754aBC46c52416550D1; //Mainnet
+   
         //Create Pair in the contructor, this may fail on some blockchains and can be done in a separate line if needed.
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(currentRouter);
         WETH = _uniswapV2Router.WETH();
@@ -644,7 +768,19 @@ contract DIGIVERSE is Context, IERC20, Ownable {
         _noFeeWallet[owner()] = true;
         _noFeeWallet[address(this)] = true;
 
-        emit Transfer(address(0), _msgSender(), _tTotal);
+        //Transfer of Token Distribution as requested by Certik.
+        emit Transfer(address(0), marketingWallet, marketingAmount);
+        emit Transfer(address(0), seedWallet, seedAmount);
+        emit Transfer(address(0), privateSaleWallet, privateSaleAmount);
+        emit Transfer(address(0), publicSaleWallet, publicSaleAmount);
+        emit Transfer(address(0), kolsWallet, kolsAmount);
+        emit Transfer(address(0), airdropWallet, airdropAmount);
+        emit Transfer(address(0), stakeWallet, stakeAmount);
+        emit Transfer(address(0), teamWallet, teamAmount);
+        emit Transfer(address(0), develomentWallet, developmentAmount);
+        emit Transfer(address(0), ecosystemWallet, ecosystemAmount);
+        emit Transfer(address(0), advisorsWallet, advisorsAmount);
+        emit Transfer(address(0), liquidityWallet, liquidityAmount);
     }
 
     //Readable Functions.
@@ -772,7 +908,6 @@ contract DIGIVERSE is Context, IERC20, Ownable {
         if (fee > 0) {
             _tokenTransfer(from, address(this), fee);
             marketingTokensCollected += fee;
-            totalMarketingTokensCollected += fee;
         }
         _tokenTransfer(from, to, amount);
     }
@@ -804,7 +939,7 @@ contract DIGIVERSE is Context, IERC20, Ownable {
         // make the swap
         uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
             tokenAmount,
-            0, // accept any amount of ETH
+            swapOutput, // it need to be higher than  1, it cannot be 0 as requested by certik.
             path,
             address(this), // The contract
             block.timestamp
@@ -874,29 +1009,9 @@ contract DIGIVERSE is Context, IERC20, Ownable {
     //to recieve ETH from uniswapV2Router when swaping
     receive() external payable {}
 
-    /////---fallback--////
-    //This cannot be removed as is a fallback to the swapAndLiquify
-    event SwapETHForTokens(uint256 amountIn, address[] path);
-
-    function swapETHForTokens(uint256 amount) private {
-        // generate the uniswap pair path of token -> weth
-        address[] memory path = new address[](2);
-        path[0] = WETH;
-        path[1] = address(this);
-        // make the swap
-        uniswapV2Router.swapExactETHForTokensSupportingFeeOnTransferTokens{
-            value: amount
-        }(
-            swapOutput, // accept any amount of Tokens
-            path,
-            deadWallet, // Burn address
-            block.timestamp + 300
-        );
-        emit SwapETHForTokens(amount, path);
-    }
 
     // Withdraw ETH that's potentially stuck in the Contract
-    function recoverETHfromContract() external onlyOwner {
+    function recoverETHfromContract() external nonReentrant {
         uint ethBalance = address(this).balance;
         (bool succ, ) = payable(marketingWallet).call{value: ethBalance}("");
         emit TransferStatus(succ);
@@ -907,7 +1022,7 @@ contract DIGIVERSE is Context, IERC20, Ownable {
     function recoverTokensFromContract(
         address _tokenAddress,
         uint256 _amount
-    ) external onlyOwner {
+    ) external nonReentrant {
         require(
             _tokenAddress != address(this),
             "Owner can't claim contract's balance of its own tokens"
@@ -916,14 +1031,18 @@ contract DIGIVERSE is Context, IERC20, Ownable {
         emit TransferStatus(succ);
         emit RecoveredTokens(_amount);
     }
-    //Final Dev notes, this code has been tested and audited, last update to code was done to re-add swapandliquify function to the transfer as option, is recommended to be used manually instead of automatic.
-
+//function of anti-snipe added by team, this maybe similar to a blacklist function to avoid speciic addressed from transferring tokens.
     function setAntisnipeDisable() external onlyOwner {
         require(!antisnipeDisable);
         antisnipeDisable = true;
+        emit UpdateAntiSnipeStatus(true);
     }
-
+//added safety measures to avoid potential problems.
     function setAntisnipeAddress(address addr) external onlyOwner {
+        require( addr != address(this),"You can't set contract.");
+        require(addr != address(0), "setAntisnipeAddresst: ZERO");
         antisnipe = IAntisnipe(addr);
+        emit UpdateAntiSnipe(addr);
+
     }
 }
