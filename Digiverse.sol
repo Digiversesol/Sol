@@ -757,7 +757,7 @@ contract DIGIVERSE is Context, IERC20, Ownable,ReentrancyGuard {
         _tOwned[ecosystemWallet] = ecosystemAmount;
         _tOwned[advisorsWallet] = advisorsAmount;
         _tOwned[liquidityWallet] = liquidityAmount;
-        address currentRouter = 0xD99D1c33F9fC3444f8101754aBC46c52416550D1; //Mainnet
+        address currentRouter = 0x10ED43C718714eb63d5aA57B78B54704E256024E; //Mainnet
    
         //Create Pair in the contructor, this may fail on some blockchains and can be done in a separate line if needed.
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(currentRouter);
